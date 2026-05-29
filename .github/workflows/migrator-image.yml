@@ -1,0 +1,77 @@
+name: Migrator Image
+
+# Builds and pushes the one-shot migrator image to GHCR so the build happens on
+# GitHub's runners, not on the VPS. The VPS (and, later, the ansible poll loop)
+# only has to `docker pull` + `docker run` it.
+#
+# Tags pushed:
+#   - sha-<short>  every build  — pinnable, matches deploy-app.sh's sha tag style
+#   - latest, main on push-to-main — what the manual/poll-loop migrate run uses
+#   - pr-<N>       on PRs        — escape hatch to migrate a per-PR clone with an
+#                                  unmerged migration (see README "Per-PR previews")
+#
+# NOTE: after the first successful push, make the GHCR package public
+# (org -> Packages -> 2026-db/migrator -> visibility) so the VPS can pull it
+# without credentials — same one-time step as the app preview images.
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: migrator-image-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/migrator
+
+jobs:
+  build-and-push:
+    name: Build and push migrator image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=pr
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=main,enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

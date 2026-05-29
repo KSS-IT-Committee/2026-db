@@ -67,7 +67,41 @@ same image migrates `appdata` or any per-PR clone. It is **idempotent** — it
 applies pending migrations and no-ops when the journal is fully applied, so it
 is safe to re-run.
 
-### On the VPS (production `appdata`)
+The migrator **must** run as a container on the `web` Docker network: the
+Postgres container publishes no host port (internal-only), so it is reachable
+only by the hostname `postgres:5432` from inside that network — you can't run
+`drizzle-kit migrate` straight from the VPS host.
+
+### On the VPS — no CI, no registry (interim)
+
+You do not need CI or a pushed image. Pick either:
+
+**a) Build the image locally on the VPS** (mirrors how `image_repo`-less apps
+already build):
+
+```bash
+git clone https://github.com/KSS-IT-Committee/2026-db.git /opt/2026-db   # or: git -C /opt/2026-db pull
+cd /opt/2026-db
+docker build -t 2026-db-migrator:local .
+
+source /var/lib/server/state/postgres.env
+docker run --rm --network web \
+  -e DATABASE_URL="$APPDATA_DATABASE_URL" \
+  2026-db-migrator:local
+```
+
+**b) No image build at all** — run `drizzle-kit migrate` in a stock Node
+container with the checkout mounted:
+
+```bash
+source /var/lib/server/state/postgres.env
+docker run --rm --network web \
+  -v /opt/2026-db:/app -w /app \
+  -e DATABASE_URL="$APPDATA_DATABASE_URL" \
+  node:20-alpine sh -c "npm ci --no-audit --no-fund && npx drizzle-kit migrate --config=drizzle.config.ts"
+```
+
+### On the VPS — once CI publishes the image (later)
 
 ```bash
 source /var/lib/server/state/postgres.env
