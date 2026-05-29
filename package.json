@@ -1,0 +1,20 @@
+{
+  "name": "2026-db",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Canonical schema + migration owner for the shared `appdata` Postgres database. The only thing that runs `drizzle-kit migrate` against production.",
+  "type": "module",
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10"
+  }
+}
