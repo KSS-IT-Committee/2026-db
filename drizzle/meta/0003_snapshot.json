@@ -1,5 +1,5 @@
 {
-  "id": "f6ac5796-fcd8-4f7b-a04c-b1d58ded8672",
+  "id": "534fe4b3-92a6-4f23-96b1-a0d2efc3a4d2",
   "prevId": "0b12c5ce-dc5d-45bc-a78f-893fb8483ea1",
   "version": "7",
   "dialect": "postgresql",
@@ -382,6 +382,13 @@
           "type": "varchar(60)",
           "primaryKey": false,
           "notNull": true
+        },
+        "has_logged_in": {
+          "name": "has_logged_in",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
