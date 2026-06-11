@@ -15,14 +15,17 @@ import {
 /**
  * Canonical, app-neutral schema for the shared `appdata` Postgres database.
  *
- * This file is the SINGLE source of truth for every table in `appdata`. It is
- * the union of what the three apps used to each define for themselves:
+ * This file is the SINGLE source of truth for every table in `appdata`,
+ * which all four Next.js apps share:
  *
- *   - 2026-event-week-top              -> users
+ *   - 2026-event-week-top              -> users, sessions (sessions are
+ *                                         validated + renewed by ALL apps;
+ *                                         only event-week-top creates them)
  *   - 2026-sousakuten-equipment-management
  *   - 2026-sousakuten-info             -> deductions, announcements,
  *                                         announcement_classes, equipments,
  *                                         borrowings, class_name enum
+ *   - 2026-taiikusai-top               -> users, sessions (login only)
  *
  * equipment-management and sousakuten-info defined an IDENTICAL set of tables;
  * here they collapse onto the same tables on purpose — that shared set is the
@@ -46,13 +49,37 @@ export const CLASSNAMES = [
 
 export const classEnum = pgEnum("class_name", CLASSNAMES);
 
-/* ───────────────────────── event-week-top ───────────────────────── */
+/* ───────────────────────── shared login ───────────────────────── */
 
-// Login credentials for the event-week-top app.
+// Login credentials, loaded out-of-band from 2026-account-generator's
+// users.sql. event-week-top hosts the /login page; every app reads this
+// table indirectly through `sessions`.
 export const users = pgTable("users", {
   username: varchar("username", { length: 8 }).primaryKey(),
   passwordHash: varchar("password_hash", { length: 60 }).notNull(),
 });
+
+// Login sessions, shared by every *.2026 app. The browser cookie holds a
+// random token; `id` is the SHA-256 hex of that token, so a leaked table
+// dump cannot be replayed as a cookie. Expiry slides on access: apps renew
+// `expires_at` to now + TTL (default 2 days) when they validate a session.
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    username: varchar("username", { length: 8 })
+      .notNull()
+      .references(() => users.username, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("sessions_username_idx").on(table.username),
+    index("sessions_expires_at_idx").on(table.expiresAt),
+  ],
+);
 
 /* ───────── shared by equipment-management + sousakuten-info ───────── */
 

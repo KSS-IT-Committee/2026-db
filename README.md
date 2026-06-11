@@ -3,11 +3,12 @@
 Canonical schema + migration owner for the shared **`appdata`** Postgres database.
 
 This repo is the **single source of truth** for the schema of the one database
-that all three 2026 apps share:
+that all four 2026 apps share:
 
-- `2026-event-week-top`
+- `2026-event-week-top` — hosts `/login`; owns `users` + `sessions`
 - `2026-sousakuten-equipment-management`
 - `2026-sousakuten-info`
+- `2026-taiikusai-top` — `users` + `sessions` (shared login only)
 
 It is the **only** thing that ever runs `drizzle-kit migrate` against
 production. The apps connect to `appdata` and read/write it, but no longer
@@ -38,7 +39,7 @@ the high-water-mark behave, and **one set of `CREATE`s** removes the collision.
 
 | Path | What |
 |---|---|
-| `db/schema.ts` | The unified schema — union of all three apps' tables. Source of truth. |
+| `db/schema.ts` | The unified schema — union of all four apps' tables. Source of truth. |
 | `drizzle/` | Generated migrations + journal. The only journal that touches `appdata`. |
 | `drizzle.config.ts` | Drizzle config; reads `DATABASE_URL` from the environment. |
 | `Dockerfile` | Builds the one-shot **migrator image**. |
