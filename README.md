@@ -104,12 +104,30 @@ docker run --rm --network web \
 
 ### On the VPS — once CI publishes the image (later)
 
+**Always pass `--pull always`.** CI rebuilds `:latest` on every merge to `main`,
+but `docker run` reuses whatever `:latest` it pulled the first time — so without
+this flag you silently re-run a stale migrator and a freshly-merged migration
+looks like it "didn't apply" (the run still prints `migrations applied
+successfully`, because to that old image there was nothing new).
+
 ```bash
 source /var/lib/server/state/postgres.env
-docker run --rm --network web \
+docker run --rm --network web --pull always \
   -e DATABASE_URL="$APPDATA_DATABASE_URL" \
   ghcr.io/kss-it-committee/2026-db/migrator:latest
 ```
+
+The migrator never says *which* migrations it ran, so confirm against the DB —
+expect the new table(s) in `\dt` and one more row in `__drizzle_migrations`:
+
+```bash
+docker run --rm --network web postgres:16-alpine \
+  psql "$APPDATA_DATABASE_URL" -c "\dt" -c "table drizzle.__drizzle_migrations"
+```
+
+The two `schema "drizzle" already exists, skipping` / `relation
+"__drizzle_migrations" already exists, skipping` NOTICEs on every run after the
+first are normal — that's drizzle's own bookkeeping, not a failure.
 
 ### Locally
 
