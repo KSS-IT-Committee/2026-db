@@ -55,7 +55,9 @@ export const classEnum = pgEnum("class_name", CLASSNAMES);
 // users.sql. event-week-top hosts the /login page; every app reads this
 // table indirectly through `sessions`.
 export const users = pgTable("users", {
-  username: varchar("username", { length: 8 }).primaryKey(),
+  // Students are 4 chars (`1A01`); the wider cap is headroom for non-student
+  // (teacher / committee / admin) logins. varchar length is free in Postgres.
+  username: varchar("username", { length: 32 }).primaryKey(),
   passwordHash: varchar("password_hash", { length: 60 }).notNull(),
 });
 
@@ -67,7 +69,7 @@ export const sessions = pgTable(
   "sessions",
   {
     id: varchar("id", { length: 64 }).primaryKey(),
-    username: varchar("username", { length: 8 })
+    username: varchar("username", { length: 32 })
       .notNull()
       .references(() => users.username, { onDelete: "cascade" }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
