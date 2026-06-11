@@ -1,5 +1,5 @@
 {
-  "id": "c12c45f5-1f73-44e3-a40d-f13fc743cc20",
+  "id": "f6ac5796-fcd8-4f7b-a04c-b1d58ded8672",
   "prevId": "0b12c5ce-dc5d-45bc-a78f-893fb8483ea1",
   "version": "7",
   "dialect": "postgresql",
@@ -359,7 +359,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "session_id_is_sha256_hex": {
+          "name": "session_id_is_sha256_hex",
+          "value": "\"sessions\".\"id\" ~ '^[0-9a-f]{64}$'"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.users": {
