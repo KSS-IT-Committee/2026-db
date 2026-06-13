@@ -40,15 +40,36 @@ import {
 // equipment-management hardcodes this inline; sousakuten-info exports it from
 // lib/classes.ts. Both are 1A..6D today — keep them in lockstep with this list.
 export const CLASSNAMES = [
-  "1A", "1B", "1C", "1D",
-  "2A", "2B", "2C", "2D",
-  "3A", "3B", "3C", "3D",
-  "4A", "4B", "4C", "4D",
-  "5A", "5B", "5C", "5D",
-  "6A", "6B", "6C", "6D",
+  "1A",
+  "1B",
+  "1C",
+  "1D",
+  "2A",
+  "2B",
+  "2C",
+  "2D",
+  "3A",
+  "3B",
+  "3C",
+  "3D",
+  "4A",
+  "4B",
+  "4C",
+  "4D",
+  "5A",
+  "5B",
+  "5C",
+  "5D",
+  "6A",
+  "6B",
+  "6C",
+  "6D",
 ] as const;
 
+export const ROLENAMES = ["IT", "Sousakuten", "Taiikusai"] as const;
+
 export const classEnum = pgEnum("class_name", CLASSNAMES);
+export const roleEnum = pgEnum("role", ROLENAMES);
 
 /* ───────────────────────── shared login ───────────────────────── */
 
@@ -64,6 +85,10 @@ export const users = pgTable("users", {
   // to false. Lets us tell which accounts have ever been used (e.g. to find
   // students who never picked up / activated their card).
   hasLoggedIn: boolean("has_logged_in").notNull().default(false),
+  roles: roleEnum("roles")
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
 });
 
 // Login sessions, shared by every *.2026 app. The browser cookie holds a
