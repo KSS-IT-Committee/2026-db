@@ -43,6 +43,13 @@
       "when": 1783072269130,
       "tag": "0005_needy_wallflower",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783629741428,
+      "tag": "0006_jazzy_mongoose",
+      "breakpoints": true
     }
   ]
 }
