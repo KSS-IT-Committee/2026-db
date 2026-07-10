@@ -50,6 +50,13 @@
       "when": 1783629741428,
       "tag": "0006_jazzy_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783685931709,
+      "tag": "0007_late_shocker",
+      "breakpoints": true
     }
   ]
 }

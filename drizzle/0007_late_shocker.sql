@@ -1,0 +1,1 @@
+ALTER TABLE "equipments" DROP COLUMN "updated_at";
