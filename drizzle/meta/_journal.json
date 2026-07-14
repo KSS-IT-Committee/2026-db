@@ -64,6 +64,13 @@
       "when": 1784003300157,
       "tag": "0008_public_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784030395708,
+      "tag": "0009_perfect_lucky_pierre",
+      "breakpoints": true
     }
   ]
 }
