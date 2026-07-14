@@ -1,0 +1,2 @@
+ALTER TABLE "lottery_entries" ADD COLUMN "party_size" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
+ALTER TABLE "lottery_entries" ADD CONSTRAINT "party_size_positive" CHECK ("lottery_entries"."party_size" >= 1);
