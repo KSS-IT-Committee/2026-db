@@ -57,6 +57,13 @@
       "when": 1783685931709,
       "tag": "0007_late_shocker",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784003300157,
+      "tag": "0008_public_obadiah_stane",
+      "breakpoints": true
     }
   ]
 }
