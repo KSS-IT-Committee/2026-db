@@ -289,3 +289,18 @@ export const announcementClassesRelations = relations(
     }),
   }),
 );
+
+export const GeinosaiSeats = pgTable(
+  "geinosai_seats",
+  {
+    id: serial("id").primaryKey(),
+    personId: text("person_id").notNull(),
+    seatNumberA: integer("seat_number_a"),
+    seatNumberB: integer("seat_number_b"),
+    seatNumberC: integer("seat_number_c"),
+    seatNumberD: integer("seat_number_d"),
+    seatNumberE: integer("seat_number_e"),
+  },
+  (table) => [unique().on(table.personId)],
+);
+
