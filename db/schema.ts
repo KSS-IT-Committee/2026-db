@@ -88,6 +88,7 @@ export const ROLENAMES = [
   "ClassD",
   "Students",
   "Teachers",
+  "SousakutenMain",
 ] as const;
 
 // Who a lottery entry applies for: the student themselves, or their
