@@ -266,6 +266,14 @@ export const Borrowings = pgTable(
       .defaultNow()
       .notNull(),
     returnedAt: timestamp("returned_at", { withTimezone: true }),
+    // This is awful actually to have equipmentId and equipmentIdentifier both,
+    // it really doesn't make sense.
+    // To make some comment here, equipmentIdentifier is used for identifying
+    // which specific equipment was borrowed, while equipmentId is representing
+    // the type of equipment. For example, if there are 10 microphones, they
+    // will all have the same equipmentId, but each microphone will have a unique
+    // equipmentIdentifier(and they are continuous integers).
+    equipmentIdentifier: integer("equipment_identifier"),
   },
   (table) => [
     index("equipment_idx").on(table.equipmentId),

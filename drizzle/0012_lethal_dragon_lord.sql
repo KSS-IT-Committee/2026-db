@@ -1,0 +1,1 @@
+ALTER TABLE "borrowings" ADD COLUMN "equipment_identifier" integer NOT NULL;
