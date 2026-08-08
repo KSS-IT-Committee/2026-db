@@ -1,5 +1,5 @@
 {
-  "id": "fd8e036a-04f1-448a-b53f-df911b6c7803",
+  "id": "70f6d983-6643-46b8-85a9-d45db634b480",
   "prevId": "6db292e1-1fc0-4814-86ee-e52365544d86",
   "version": "7",
   "dialect": "postgresql",
@@ -44,7 +44,7 @@
           "name": "equipment_identifier",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {

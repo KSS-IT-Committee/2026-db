@@ -1,1 +1,0 @@
-ALTER TABLE "borrowings" ALTER COLUMN "equipment_identifier" DROP NOT NULL;
