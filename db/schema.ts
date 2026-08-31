@@ -103,6 +103,8 @@ export const lotteryApplicantTypeEnum = pgEnum(
   LOTTERY_APPLICANT_TYPES,
 );
 
+export const performanceEnum = pgEnum("performance", ["A", "B", "C", "D", "E"]);
+
 /* ───────────────────────── shared login ───────────────────────── */
 
 // Login credentials, loaded out-of-band from 2026-account-generator's
@@ -368,4 +370,7 @@ export const Seats = pgTable("seats", {
   performance: performanceEnum("performance").notNull(),
   addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
   seat: text("seat").notNull(),
-});
+},
+(table) => [
+  unique("seats_username_performance_unique").on(table.username, table.performance),
+]);
