@@ -89,6 +89,7 @@ export const ROLENAMES = [
   "Students",
   "Teachers",
   "SousakutenMain",
+  "Geinousai",
 ] as const;
 
 // Who a lottery entry applies for: the student themselves, or their
@@ -357,3 +358,14 @@ export const announcementClassesRelations = relations(
     }),
   }),
 );
+
+// 芸能祭座席DB
+export const Seats = pgTable("seats", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 32 })
+    .notNull()
+    .references(() => users.username, { onDelete: "cascade" }),
+  performance: performanceEnum("performance").notNull(),
+  addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
+  seat: text("seat").notNull(),
+});
