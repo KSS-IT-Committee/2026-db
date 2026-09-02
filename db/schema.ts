@@ -362,15 +362,25 @@ export const announcementClassesRelations = relations(
 );
 
 // 芸能祭座席DB
-export const Seats = pgTable("seats", {
-  id: serial("id").primaryKey(),
-  username: varchar("username", { length: 32 })
-    .notNull()
-    .references(() => users.username, { onDelete: "cascade" }),
-  performance: performanceEnum("performance").notNull(),
-  addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
-  seat: text("seat").notNull(),
-},
-(table) => [
-  unique("seats_username_performance_unique").on(table.username, table.performance),
-]);
+export const Seats = pgTable(
+  "seats",
+  {
+    id: serial("id").primaryKey(),
+    username: varchar("username", { length: 32 })
+      .notNull()
+      .references(() => users.username, { onDelete: "cascade" }),
+    performance: performanceEnum("performance").notNull(),
+    addedAt: timestamp("added_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    seat: text("seat").notNull(),
+  },
+  (table) => [
+    unique("seats_username_performance_unique").on(
+      table.username,
+      table.performance,
+    ),
+    // A physical seat holds one person per performance.
+    unique("seats_performance_seat_unique").on(table.performance, table.seat),
+  ],
+);
