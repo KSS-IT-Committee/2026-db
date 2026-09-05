@@ -1,0 +1,1 @@
+ALTER TABLE "lottery_results" ADD CONSTRAINT "lottery_results_username_users_username_fk" FOREIGN KEY ("username") REFERENCES "public"."users"("username") ON DELETE cascade ON UPDATE no action;

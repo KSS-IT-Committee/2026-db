@@ -113,6 +113,13 @@
       "when": 1788333029736,
       "tag": "0015_powerful_roulette",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1788592331545,
+      "tag": "0016_hot_karma",
+      "breakpoints": true
     }
   ]
 }

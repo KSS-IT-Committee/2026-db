@@ -61,6 +61,20 @@ changes **additive** — add a table, add a nullable column, add an index. Renam
 drops, and type changes must be done in multiple steps (deploy compatible app
 code first, change the column in a later step). See the per-app docs for detail.
 
+**Adding a foreign key to a populated table validates the rows already there**,
+and a failed migration leaves the journal stuck, blocking every later one. Check
+for orphans first and fix them before migrating, e.g. for `0016`'s key on
+`lottery_results`:
+
+```sql
+SELECT count(*) FROM lottery_results r
+  LEFT JOIN users u ON u.username = r.username
+ WHERE u.username IS NULL;   -- must be 0
+```
+
+If it isn't 0, the roster is stale or the draw predates it: load
+`2026-account-generator`'s `users.sql`, then re-run the draw's SQL.
+
 ## Running migrations
 
 The migrator picks its target database from `DATABASE_URL` at run time, so the
@@ -155,6 +169,13 @@ keep schema changes **additive and merged here first** — then every PR clone
 inherits the already-migrated schema and never needs its own migrate. If you
 must preview an unmerged migration, point the migrator at the clone's DSN
 manually.
+
+Clones are schema-only with one exception: `2026-server-ansible`'s `pr-db.sh`
+seeds each clone's `users` table with the production roster, credential columns
+replaced by a stub hash. That is what lets a table reference `users(username)` —
+a preview's login is vouched for by production's auth host, not by its own
+clone, so on an empty `users` table every foreign key to it would fail there.
+New username columns can therefore be keyed normally; see `lottery_results`.
 
 ## What the apps must do
 
