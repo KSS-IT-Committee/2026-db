@@ -1,0 +1,29 @@
+-- Make "one seat per (lottery, slot, account, 区分)" DEFERRABLE so that two
+-- accounts can EXCHANGE their seats for the same performance.
+--
+-- Why this is needed: an exchange rewrites both rows' `username`, and each row
+-- passes through the other's key on the way. Postgres checks a non-deferrable
+-- UNIQUE per row as the UPDATE runs, so the swap fails no matter how it is
+-- written -- two statements, or one `UPDATE ... CASE`, both raise
+-- "duplicate key value violates unique constraint". Deferring the check to
+-- COMMIT lets the pair cross over.
+--
+-- INITIALLY IMMEDIATE, so nothing changes for any existing reader or writer:
+-- the constraint still fires per statement exactly as before, and only a
+-- transaction that explicitly runs
+--   SET CONSTRAINTS "lottery_results_slot_applicant_unique" DEFERRED
+-- (2026-event-week-top's claimTicketTransfer, for the exchange path alone)
+-- gets the relaxed timing. Old app code keeps behaving identically, which is
+-- what makes this safe to migrate ahead of the deploy.
+--
+-- Not additive -- it drops and recreates the constraint, rebuilding its index
+-- under an ACCESS EXCLUSIVE lock. `lottery_results` holds a few thousand rows
+-- at most (one per seat awarded), so that is milliseconds; on a bigger table
+-- this would need the usual concurrent-index dance instead.
+--
+-- Hand-written because drizzle-kit does not model constraint deferrability:
+-- db/schema.ts is unchanged, so `drizzle-kit generate` sees no drift and will
+-- not try to revert this. `drizzle-kit push` WOULD (it diffs the live DB) --
+-- another reason this repo migrates rather than pushes.
+ALTER TABLE "lottery_results" DROP CONSTRAINT "lottery_results_slot_applicant_unique";--> statement-breakpoint
+ALTER TABLE "lottery_results" ADD CONSTRAINT "lottery_results_slot_applicant_unique" UNIQUE ("lottery_id","slot_id","username","applicant_type") DEFERRABLE INITIALLY IMMEDIATE;
