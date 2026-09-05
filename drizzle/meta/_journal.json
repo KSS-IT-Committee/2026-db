@@ -120,6 +120,13 @@
       "when": 1788592331545,
       "tag": "0016_hot_karma",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1788610128041,
+      "tag": "0017_natural_living_lightning",
+      "breakpoints": true
     }
   ]
 }
