@@ -27,7 +27,7 @@ import {
  *   - 2026-sousakuten-info             -> deductions, announcements,
  *                                         announcement_classes, equipments,
  *                                         borrowings, class_name enum
- *   - 2026-taiikusai-top               -> users, sessions (login only)
+ *   - 2026-taiikusai-top               -> users, sessions, taiikusai_scores
  *
  * equipment-management and sousakuten-info defined an IDENTICAL set of tables;
  * here they collapse onto the same tables on purpose — that shared set is the
@@ -500,3 +500,17 @@ export const Seats = pgTable(
     unique("seats_performance_seat_unique").on(table.performance, table.seat),
   ],
 );
+
+// 体育祭本大会の得点表。1行がルールブックのプログラム1競技、列が青・赤・緑・白
+// の4団。まだ実施していない競技は NULL のままにして、0点と区別する。
+// 読み書きするのは 2026-taiikusai-top だけ。
+export const taiikusaiScores = pgTable("taiikusai_scores", {
+  program: integer("program").primaryKey(),
+  blue: integer("blue"),
+  red: integer("red"),
+  green: integer("green"),
+  white: integer("white"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
