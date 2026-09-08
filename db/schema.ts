@@ -27,7 +27,8 @@ import {
  *   - 2026-sousakuten-info             -> deductions, announcements,
  *                                         announcement_classes, equipments,
  *                                         borrowings, class_name enum
- *   - 2026-taiikusai-top               -> users, sessions, taiikusai_scores
+ *   - 2026-taiikusai-top               -> users, sessions, taiikusai_scores,
+ *                                         taiikusai_progress
  *
  * equipment-management and sousakuten-info defined an IDENTICAL set of tables;
  * here they collapse onto the same tables on purpose — that shared set is the
@@ -514,3 +515,19 @@ export const taiikusaiScores = pgTable("taiikusai_scores", {
     .defaultNow()
     .notNull(),
 });
+
+// 体育祭の進行状況。今どの種目をやっているかを1行だけ持つ（id は 1 固定）。
+// NULL は開始前、文字列 "finished" は全日程終了を表す。updated_at は委員会が
+// その種目に印を移した時刻で、押し／巻きの計算はここを起点にする。
+// 読み書きするのは 2026-taiikusai-top だけ。
+export const taiikusaiProgress = pgTable(
+  "taiikusai_progress",
+  {
+    id: integer("id").primaryKey(),
+    programId: varchar("program_id", { length: 32 }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [check("taiikusai_progress_single_row", sql`${table.id} = 1`)],
+);
