@@ -1,0 +1,1 @@
+ALTER TABLE "taiikusai_lost_items" ADD COLUMN "file_name" varchar(160) NOT NULL;
