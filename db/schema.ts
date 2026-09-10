@@ -2,7 +2,6 @@ import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   check,
-  customType,
   index,
   integer,
   pgEnum,
@@ -534,24 +533,16 @@ export const taiikusaiProgress = pgTable(
   (table) => [check("taiikusai_progress_single_row", sql`${table.id} = 1`)],
 );
 
-// Drizzle には bytea 型がないので自前で定義する。postgres-js はどちらにせよ
-// Buffer で返す。
-const bytea = customType<{ data: Buffer }>({
-  dataType() {
-    return "bytea";
-  },
-});
-
-// 体育祭の忘れ物ボード。画像そのものを行に持つ: アプリのコンテナは blue/green
-// で入れ替わり、書き込める永続ディスクを持たないので、共有の appdata だけが
-// デプロイをまたいで写真を残せる。uploaded_by は users への外部キーにはして
-// いない（プレビューの users は本番から絞ったロスターのため）。
+// 体育祭の忘れ物ボード。ここに入るのはメタデータだけで、写真そのものは永続
+// マウント（/app/files）に置き、アプリ側のルートが配信する — 備品管理と同じ
+// 方式。file_name は一意ではない: 名前は内容のハッシュなので、同じ写真を2回
+// 載せると1つのファイルを2行が指す。uploaded_by は users への外部キーには
+// していない（プレビューの users は本番から絞ったロスターのため）。
 // 読み書きするのは 2026-taiikusai-top だけ。
 export const taiikusaiLostItems = pgTable("taiikusai_lost_items", {
   id: serial("id").primaryKey(),
   description: text("description"),
-  contentType: varchar("content_type", { length: 64 }).notNull(),
-  imageBytes: bytea("image_bytes").notNull(),
+  fileName: varchar("file_name", { length: 160 }).notNull(),
   uploadedBy: varchar("uploaded_by", { length: 32 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
