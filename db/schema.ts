@@ -30,6 +30,7 @@ import {
  *   - 2026-taiikusai-top               -> users, sessions, taiikusai_scores,
  *                                         taiikusai_lost_items,
  *                                         taiikusai_progress
+ *   - 2026-sousakuten-top              -> sousakuten_lost_items
  *
  * equipment-management and sousakuten-info defined an IDENTICAL set of tables;
  * here they collapse onto the same tables on purpose — that shared set is the
@@ -549,13 +550,23 @@ export const taiikusaiLostItems = pgTable("taiikusai_lost_items", {
     .notNull(),
 });
 
-
-
+// The 忘れ物 board for 創作展. Written by 2026-sousakuten-top, which posts a
+// photo and an optional description; the photo itself lives on the per-app
+// /app/files mount, not in this table, and file_name is the SHA-256 of its
+// bytes so two uploads of the same picture share one file.
 export const sousakutenLostItems = pgTable("sousakuten_lost_items", {
   id: serial("id").primaryKey(),
   description: text("description"),
   fileName: varchar("file_name", { length: 160 }).notNull(),
-  uploadedBy: varchar("uploaded_by", { length: 32 }).notNull(),
+  // The committee member who posted it, for the audit trail. Nullable only so
+  // it can be ON DELETE SET NULL: removing a staff account must not silently
+  // delete the board — and a cascade would strand the photo files too, since
+  // the app's deleteLostItem() is the only thing that unlinks them. Same
+  // shape and same reasoning as sousakuten_stamps.granted_by.
+  uploadedBy: varchar("uploaded_by", { length: 32 }).references(
+    () => users.username,
+    { onDelete: "set null" },
+  ),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
