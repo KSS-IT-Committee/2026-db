@@ -548,3 +548,122 @@ export const taiikusaiLostItems = pgTable("taiikusai_lost_items", {
     .defaultNow()
     .notNull(),
 });
+
+/* ──────────── 創作展スタンプラリー (sousakuten-top) ──────────── */
+
+// How a stamp was earned. Kept because the two paths carry very different
+// weight: a `scan` row was written by a named account standing at the booth,
+// a `passphrase` row only proves the holder could read a poster. If the rally
+// is ever audited for cheating, this is the column that separates them.
+export const STAMP_METHODS = ["scan", "passphrase"] as const;
+
+export const stampMethodEnum = pgEnum("stamp_method", STAMP_METHODS);
+
+export type StampMethod = (typeof STAMP_METHODS)[number];
+
+// 創作展スタンプラリー 取得DB — one row per (account, spot) the account has
+// collected. Spots themselves are NOT rows here: the catalogue of exhibits
+// (24 classes + clubs + committees) is app-side config in 2026-sousakuten-top's
+// lib/stamps.ts, built from lib/exhibits.ts — same arrangement as the viewing
+// lottery, where lib/lotteries.ts owns the definitions and only outcomes land
+// in the DB. Adding or dropping an exhibit is therefore a code change and
+// introduces new `spot_id` values, never a migration.
+//
+// Written by 2026-sousakuten-top in two ways, both of which the app authorises
+// before inserting: a booth staffer scanning the visitor's personal QR
+// (`scan`), or the visitor typing the booth's passphrase themselves
+// (`passphrase`, see sousakuten_stamp_passphrases below).
+export const sousakutenStamps = pgTable(
+  "sousakuten_stamps",
+  {
+    id: serial("id").primaryKey(),
+    // Who holds the stamp. External visitors have no account and therefore
+    // cannot take part — the rally is school accounts only, by design.
+    username: varchar("username", { length: 32 })
+      .notNull()
+      .references(() => users.username, { onDelete: "cascade" }),
+    // An exhibit id from lib/stamps.ts ("1a", "chado", …). Validated by the
+    // app against that catalogue before any insert; the DB only stores it.
+    spotId: varchar("spot_id", { length: 64 }).notNull(),
+    method: stampMethodEnum("method").notNull(),
+    // The staffer who granted it; NULL for a `passphrase` row, which nobody
+    // granted. Deliberately ON DELETE SET NULL rather than CASCADE: deleting
+    // a staff account must not silently delete the stamps they handed out.
+    grantedBy: varchar("granted_by", { length: 32 }).references(
+      () => users.username,
+      { onDelete: "set null" },
+    ),
+    collectedAt: timestamp("collected_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    // A spot is collected once. The app inserts with ON CONFLICT DO NOTHING,
+    // so a second scan is a no-op rather than an error — re-scanning someone
+    // who already has the stamp is the normal case at a busy booth.
+    unique("sousakuten_stamps_username_spot_unique").on(
+      table.username,
+      table.spotId,
+    ),
+    // The card query: every stamp one account holds.
+    index("sousakuten_stamps_username_idx").on(table.username),
+    // Per-spot tallies ("how many people visited 1A").
+    index("sousakuten_stamps_spot_idx").on(table.spotId),
+    // Nobody stamps their own card. The app blocks it too; this is the copy
+    // that survives a bug in the app.
+    check(
+      "sousakuten_stamps_not_self_granted",
+      sql`${table.grantedBy} IS NULL OR ${table.grantedBy} <> ${table.username}`,
+    ),
+    // A passphrase stamp was granted by nobody, so it must never name a
+    // granter — that is the half an app bug could actually get wrong.
+    //
+    // The converse ("a scan row always names a granter") is deliberately NOT
+    // enforced, even though the app always supplies one. `granted_by` is
+    // ON DELETE SET NULL, so deleting a staff account rewrites their scan
+    // rows to NULL; stating both directions here would make that UPDATE
+    // violate the constraint and leave any staffer who ever granted a stamp
+    // undeletable. A scan row with a NULL granter therefore reads as
+    // "granted by an account that has since been removed".
+    check(
+      "sousakuten_stamps_passphrase_has_no_granter",
+      sql`${table.method} <> 'passphrase' OR ${table.grantedBy} IS NULL`,
+    ),
+  ],
+);
+
+// 創作展スタンプラリー 合言葉DB — the passphrase printed beside each booth's
+// poster, for exhibits with nobody staffing a scanner.
+//
+// In the DB rather than in lib/stamps.ts on purpose: the app repo is public,
+// and a passphrase committed to git is a passphrase every visitor can read
+// from home. It is stored in the clear because the committee has to print it,
+// and because it is not really a secret — everyone standing at the booth can
+// see it. It proves presence, nothing more, which is also why a leaked one
+// costs only a stamp and can be rotated in place from the admin page.
+//
+// One row per spot, absent until a passphrase is generated; a spot with no
+// row simply has no self-serve path and must be scanned by a staffer.
+export const sousakutenStampPassphrases = pgTable(
+  "sousakuten_stamp_passphrases",
+  {
+    // The same lib/stamps.ts id as sousakuten_stamps.spot_id. No foreign key
+    // exists to point at, since spots are code, not rows.
+    spotId: varchar("spot_id", { length: 64 }).primaryKey(),
+    passphrase: varchar("passphrase", { length: 64 }).notNull(),
+    // Who last rotated it, for the audit trail. SET NULL for the same reason
+    // as sousakuten_stamps.granted_by.
+    updatedBy: varchar("updated_by", { length: 32 }).references(
+      () => users.username,
+      { onDelete: "set null" },
+    ),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+);
+
+export type SousakutenStamp = typeof sousakutenStamps.$inferSelect;
+export type NewSousakutenStamp = typeof sousakutenStamps.$inferInsert;
+export type SousakutenStampPassphrase =
+  typeof sousakutenStampPassphrases.$inferSelect;
