@@ -169,6 +169,13 @@
       "when": 1788950017895,
       "tag": "0023_tidy_anthem",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789024193375,
+      "tag": "0024_volatile_lake",
+      "breakpoints": true
     }
   ]
 }
