@@ -548,3 +548,15 @@ export const taiikusaiLostItems = pgTable("taiikusai_lost_items", {
     .defaultNow()
     .notNull(),
 });
+
+
+
+export const sousakutenLostItems = pgTable("sousakuten_lost_items", {
+  id: serial("id").primaryKey(),
+  description: text("description"),
+  fileName: varchar("file_name", { length: 160 }).notNull(),
+  uploadedBy: varchar("uploaded_by", { length: 32 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
