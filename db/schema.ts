@@ -94,6 +94,11 @@ export const ROLENAMES = [
   "Teachers",
   "SousakutenMain",
   "Geinousai",
+  // 校外 (external, non-school) visitor accounts, from
+  // 2026-account-generator's external roster. Deliberately NOT in
+  // lib/access.ts's INTERNAL_ROLES — these accounts can log in but hold no
+  // role any internal page admits.
+  "External",
 ] as const;
 
 // Who a lottery entry applies for: the student themselves, or their
