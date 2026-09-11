@@ -30,7 +30,11 @@ import {
  *   - 2026-taiikusai-top               -> users, sessions, taiikusai_scores,
  *                                         taiikusai_lost_items,
  *                                         taiikusai_progress
- *   - 2026-sousakuten-top              -> sousakuten_lost_items
+ *   - 2026-sousakuten-top              -> sousakuten_lost_items,
+ *                                         lottery_result_checkins,
+ *                                         lottery_external_result_checkins
+ *                                         (and reads lottery_results,
+ *                                         lottery_external_results)
  *
  * equipment-management and sousakuten-info defined an IDENTICAL set of tables;
  * here they collapse onto the same tables on purpose — that shared set is the
@@ -226,8 +230,8 @@ export const lotteryEntries = pgTable(
 // A missing row is a loss, not an error: pair it with `lottery_entries` to
 // tell "applied and lost" from "never applied". External (non-school)
 // applicants are deliberately absent — they have no `users` row to reference
-// and are told their result through the form provider; a later additive
-// table can cover them without touching this one.
+// and are told their result through the form provider; their seats live in
+// the additive `lottery_external_results` below instead.
 export const lotteryResults = pgTable(
   "lottery_results",
   {
@@ -389,6 +393,105 @@ export const lotteryTicketTransfers = pgTable(
 export type LotteryTicketTransfer = typeof lotteryTicketTransfers.$inferSelect;
 export type NewLotteryTicketTransfer =
   typeof lotteryTicketTransfers.$inferInsert;
+
+/* ─────────── 創作展 reception desk (sousakuten-top) ─────────── */
+
+// 公演観覧抽選 校外当選DB — one row per seat awarded to a 校外 applicant: a
+// member of the public who applied through the LoGo form, and so has no school
+// account for `lottery_results` to key a seat to. Same (lottery, slot, act)
+// terms as that table.
+//
+// Every row is INSERTed in bulk by the draw (2026-lottery emits
+// out/lottery_external_results.sql); no app writes one. Read by
+// 2026-sousakuten-top's /lottery/reception, where the desk finds a visitor by
+// the number on their confirmation mail. The form's two numbers are the only
+// identity kept here — never a name or an e-mail address.
+export const lotteryExternalResults = pgTable(
+  "lottery_external_results",
+  {
+    id: serial("id").primaryKey(),
+    lotteryId: varchar("lottery_id", { length: 64 }).notNull(),
+    slotId: varchar("slot_id", { length: 64 }).notNull(),
+    // 受付番号 — "AE00046805", from the form's confirmation mail.
+    receiptNumber: varchar("receipt_number", { length: 32 }).notNull(),
+    // 抽選番号 — "0468", what the draw, the result letters and the published
+    // result list go by.
+    lotteryNumber: varchar("lottery_number", { length: 16 }).notNull(),
+    // The act won — a class code, as in lottery_results.
+    actId: varchar("act_id", { length: 64 }).notNull(),
+    // 観覧人数 admitted by this seat; copied from the application.
+    partySize: integer("party_size").notNull(),
+    // Which ranked choice won (1 = 第1希望).
+    choiceRank: integer("choice_rank").notNull(),
+    drawnAt: timestamp("drawn_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    // One seat per slot per application: the draw never seats anyone in two
+    // rooms at once. Also the key the SQL's reload conflicts on.
+    unique("lottery_external_results_slot_receipt_unique").on(
+      table.lotteryId,
+      table.slotId,
+      table.receiptNumber,
+    ),
+    // The reception page's per-performance read.
+    index("lottery_external_results_lottery_slot_idx").on(
+      table.lotteryId,
+      table.slotId,
+    ),
+    check("external_result_party_size_positive", sql`${table.partySize} >= 1`),
+    check(
+      "external_result_choice_rank_range",
+      sql`${table.choiceRank} BETWEEN 1 AND 3`,
+    ),
+  ],
+);
+
+// 公演観覧抽選 受付DB — a school seat (`lottery_results` row) that has been
+// used: its holder came to the class's 受付 and was let in. Written by
+// 2026-sousakuten-top's /lottery/reception when the desk taps the seat, and
+// deleted again when it taps it back (a mis-tap). No row = not arrived.
+//
+// The key IS the seat, not the account holding it: a seat handed on by 譲渡
+// after it was used (which rewrites lottery_results.username in place) stays
+// used, so one ticket can never admit two parties. It cascades with the seat,
+// so 破棄 takes its check-in along — and so would a reload of the draw's
+// lottery_results.sql, which is already off-limits once 譲渡 is live.
+export const lotteryResultCheckins = pgTable("lottery_result_checkins", {
+  resultId: integer("result_id")
+    .primaryKey()
+    .references(() => lotteryResults.id, { onDelete: "cascade" }),
+  checkedInAt: timestamp("checked_in_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  // The account that tapped it, for the audit trail. Nullable only so it can
+  // be ON DELETE SET NULL, like sousakuten_lost_items.uploaded_by.
+  checkedInBy: varchar("checked_in_by", { length: 32 }).references(
+    () => users.username,
+    { onDelete: "set null" },
+  ),
+});
+
+// The same record for a 校外 seat (`lottery_external_results` row). Kept apart
+// from lottery_result_checkins so each key is a plain foreign key to exactly
+// one seat table. The draw's external SQL reloads without touching a seat it
+// would put back unchanged, so re-applying it keeps these rows.
+export const lotteryExternalResultCheckins = pgTable(
+  "lottery_external_result_checkins",
+  {
+    externalResultId: integer("external_result_id")
+      .primaryKey()
+      .references(() => lotteryExternalResults.id, { onDelete: "cascade" }),
+    checkedInAt: timestamp("checked_in_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    checkedInBy: varchar("checked_in_by", { length: 32 }).references(
+      () => users.username,
+      { onDelete: "set null" },
+    ),
+  },
+);
 
 /* ───────── shared by equipment-management + sousakuten-info ───────── */
 
