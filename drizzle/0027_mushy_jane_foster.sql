@@ -1,0 +1,1 @@
+ALTER TABLE "lottery_results" ADD COLUMN "venue_id" varchar(64);

@@ -261,6 +261,15 @@ export const lotteryResults = pgTable(
     applicantType: lotteryApplicantTypeEnum("applicant_type").notNull(),
     // The act won — a class code for sousaku, a performance id for kaitaku.
     actId: varchar("act_id", { length: 64 }).notNull(),
+    // The room this seat watches the act in: one of that act's `venues` ids
+    // in event-week-top's lib/lotteries.ts ("classroom" is the class's own
+    // room, where the play is performed; 生徒観覧 also screens the 6年 plays
+    // in other rooms). NULL for a lottery whose acts have only the one room —
+    // every lottery before 生徒観覧 — and nullable for that reason, so adding
+    // it left the seats already drawn untouched. 2026-lottery's
+    // student_viewing.cpp writes it. event-week-top selects it on every read
+    // of this table, so migrate before that app deploys.
+    venueId: varchar("venue_id", { length: 64 }),
     // 観覧人数 admitted by this seat; copied from the winning entry.
     partySize: integer("party_size").notNull().default(1),
     // Which ranked choice won (1 = 第1希望). Lets the page show 第2希望 etc.
